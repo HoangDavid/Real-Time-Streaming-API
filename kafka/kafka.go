@@ -32,24 +32,26 @@ func ProduceMessage(topic string, message string) error {
 func ConsumeMessage(topic string) {
 	r := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: []string{"localhost:9092"},
-		Topic: topic,
-		Partition: 0,
+		Topic: "default",
+		 GroupID: "consumer-group-1",
 		MinBytes: 10e3,
 		MaxBytes: 10e6,
 	})
+
+	defer r.Close()
 
 	for {
 		m, err := r.ReadMessage(context.Background())
 		if err != nil{
 			log.Printf("could not read message %v", err)
-			continue
+			return
 		}
 
 		fmt.Printf("Message: %s\n", string(m.Value))
 	}
 }
 
-//To create a topic for Kafka:
-//	docker exec -it redpanda rpk topic create default 
 //To run redpanda on Docker:
 //  docker run -d --name=redpanda -p 9092:9092 -p 9644:9644 docker.redpanda.com/vectorized/redpanda:latest redpanda start --overprovisioned --smp 1 --memory 1G --reserve-memory 0M --node-id 0 --check=false --kafka-addr PLAINTEXT://0.0.0.0:9092 --advertise-kafka-addr PLAINTEXT://localhost:9092
+//To create a topic for Kafka:
+//	docker exec -it redpanda rpk topic create default 
