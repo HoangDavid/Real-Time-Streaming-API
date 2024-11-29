@@ -1,1 +1,1 @@
-# Real-Time-Streaming-API-with-Go-and-Redpanda
+# Real Time Streaming API with Kafka(Redpanda)
