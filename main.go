@@ -23,8 +23,10 @@ func main() {
 
 
 
-// Testing:
+//Testing:
 // Run: -X POST http://localhost:8080/stream/start
-//
+// curl -X POST -d "Hi, my name is Hoang" http://localhost:8080/stream/123/send
+// curl -X GET http://localhost:8080/stream/123/results
 
-// fuction has to be capitalized to be exported
+//Note to self:
+//	fuction has to be capitalized to be exported
