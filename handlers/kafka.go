@@ -5,7 +5,6 @@ import (
 	"github.com/segmentio/kafka-go"
 	"context"
 	"strings"
-	"fmt"
 	"log"
 )
 
@@ -16,7 +15,7 @@ func ProduceMessage(streamID string, data string) error {
 		Brokers: []string{brokerAddr},
 		Topic: streamID,
 	})
-	fmt.Printf("Producing message to topic %s: %s\n", streamID, data)
+	log.Printf("Producing message to topic %s: %s\n", streamID, data)
 	
 	// Release resource by kafka writer after the function is done
 	defer writer.Close()
@@ -54,18 +53,14 @@ func ConsumeMessage(streamID string) {
 		
 		processedData := ProcessMessage(string(msg.Value))
 
-		// Add the processed results a global variable for simplicity
-		mu.Lock()
-		results[streamID] = append(results[streamID], processedData)
-		mu.Unlock()
-
 		// Send processed results to channels
-		mu.Lock()
+		mu.RLock()
 		ch, exists := streams[streamID]
-		if exists {
-			ch<-processedData
+		mu.RUnlock()
+
+		if exists{
+			ch <- processedData
 		}
-		mu.Unlock()
 
 		log.Printf("Processed message from stream %s: %s", streamID, processedData)
 	}

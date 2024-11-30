@@ -13,8 +13,8 @@ import (
 
 var (
 	brokerAddr = "localhost:9092"
-	results = make(map[string][]string)
-	mu sync.Mutex
+	// results = make(map[string][]string)
+	mu sync.RWMutex
 	streams = make(map[string]chan string)
 	wg sync.WaitGroup
 )
@@ -44,14 +44,19 @@ func StreamStart(w http.ResponseWriter, r *http.Request){
 	mu.Unlock()
 
 	// Start a go routine for a stream
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		ConsumeMessage(streamID)
-	}()
+	if !exists{
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer close(streams[streamID])
+			ConsumeMessage(streamID)
+		}()
 
-	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(fmt.Sprintf("Stream %s started successfully\n", streamID)))
+		w.WriteHeader(http.StatusCreated)
+		w.Write([]byte(fmt.Sprintf("Stream %s started successfully\n", streamID)))
+	}else{
+		w.Write([]byte(fmt.Sprintf("Stream %s is already started\n", streamID)))
+	}
 }
 
 func StreamSend(w http.ResponseWriter, r *http.Request){
@@ -82,22 +87,27 @@ func StreamResults(w http.ResponseWriter, r *http.Request){
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 
-	mu.Lock()
+	mu.RLock()
 	ch, exists := streams[streamID]
-	mu.Unlock()
+	mu.RUnlock()
 
 	if !exists {
 		http.Error(w, "Stream not found", http.StatusNotFound)
 		return
 	}
 
+	
+	log.Printf("StreamResults called for streamID: %s", streamID)
+
 	// Stream the processed results to the client side
 	for msg := range ch {
+		log.Printf("Stream %s: %s\n", streamID, msg)
 		_, err := fmt.Fprintf(w, "data: %s\n\n", msg) // SSE data format
 		if err != nil{
 			log.Printf("Client disconnected from stream %s\n", streamID)
 			return
 		}
+
 
 		w.(http.Flusher).Flush() // Sending the data to client immediately
 	}
