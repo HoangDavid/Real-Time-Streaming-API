@@ -11,7 +11,7 @@ import (
 func main() {
 	r := mux.NewRouter()
 
-	r.HandleFunc("/stream/start", handlers.StreamStart).Methods("POST")
+	r.HandleFunc("/stream/{stream_id}/start", handlers.StreamStart).Methods("POST")
 	r.HandleFunc("/stream/{stream_id}/send", handlers.StreamSend).Methods("POST")
 	r.HandleFunc("/stream/{stream_id}/results", handlers.StreamResults).Methods("GET")
 

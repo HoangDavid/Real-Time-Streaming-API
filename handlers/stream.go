@@ -5,12 +5,33 @@ import (
 	"io/ioutil"
 	"net/http"
 	"github.com/gorilla/mux"
+	"sync"
+	"github.com/segmentio/kafka-go"
+)
+
+
+var (
+	brokerAddr = "localhost:9092"
+	results = make(map[string][]string)
+	mu sync.Mutex
 )
 
 func StreamStart(w http.ResponseWriter, r *http.Request){
+	//TODO: create topic if doesn't exists + start consumer goroutines
+
 	streamID := mux.Vars(r)["stream_id"]
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Stream %s started\n", streamID)
+
+	err := createTopicIfNotExists(streamID)
+	if err != nil{
+		http.Error(w, fmt.Sprintf("Failed to create stream: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// start a consumer for a stream
+	go ConsumeMessage(streamID)
+
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte(fmt.Sprintf("Stream %s started successfully\n", streamID)))
 }
 
 func StreamSend(w http.ResponseWriter, r *http.Request){
@@ -30,22 +51,60 @@ func StreamSend(w http.ResponseWriter, r *http.Request){
 	}
 
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Stream %s sent\n", streamID)
+	w.Write([]byte(fmt.Sprintf("Data sent to stream %s\n", streamID)))
 }
 
 func StreamResults(w http.ResponseWriter, r *http.Request){
 	streamID := mux.Vars(r)["stream_id"]
 
-	msg, err := ConsumeMessage(streamID)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to send message to Kafka: %v", err), http.StatusInternalServerError)
-		return
-	}else if msg == "" {
-		http.Error(w, fmt.Sprintf("Topic %s does not exist", streamID), http.StatusInternalServerError)
+	mu.Lock()
+	data, exists := results[streamID]
+	mu.Unlock()
+
+	if !exists{
+		http.Error(w, "Stream not found", http.StatusNotFound)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Stream %s results\n", streamID)
-	fmt.Fprintf(w, msg)
+
+	// TODO: Print the results
+	mu.Lock()
+	for i, result := range data {
+        fmt.Printf("%d: %s\n", i+1, result)
+    }
+	mu.Unlock()
 	
+}
+
+
+func createTopicIfNotExists(topic string) error {
+	conn, err := kafka.Dial("tcp", brokerAddr)
+	if err != nil {
+		return err
+	}
+
+	defer conn.Close()
+
+	partitions, err := conn.ReadPartitions()
+    if err != nil {
+        return err
+    }
+
+    for _, p := range partitions {
+        if p.Topic == topic {
+            // Topic already exists
+            return nil
+        }
+    }
+	topicConfig := kafka.TopicConfig{
+        Topic: topic,
+		NumPartitions: 3,
+		ReplicationFactor: 1,
+    }
+
+	err = conn.CreateTopics(topicConfig)
+    if err != nil {
+        return err
+    }
+
+    return nil
 }
