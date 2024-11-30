@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"net/http"
-	// "github.com/gorilla/websocket"
 	"github.com/gorilla/mux"
 	"real-time-api/handlers"
 )
@@ -24,7 +23,8 @@ func main() {
 
 
 //Testing:
-// Run: -X POST http://localhost:8080/stream/start
+// Run: 
+// curl -X POST http://localhost:8080/stream/123/start
 // curl -X POST -d "Hi, my name is Hoang" http://localhost:8080/stream/123/send
 // curl -X GET http://localhost:8080/stream/123/results
 
