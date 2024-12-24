@@ -1,11 +1,11 @@
 package handlers
 
-
 import (
-	"github.com/segmentio/kafka-go"
 	"context"
-	"strings"
 	"log"
+	"strings"
+
+	"github.com/segmentio/kafka-go"
 )
 
 // TODO: Producer and Consumer should be able to handle multiple streams simultaneously
@@ -13,16 +13,16 @@ import (
 func ProduceMessage(streamID string, data string) error {
 	writer := kafka.NewWriter(kafka.WriterConfig{
 		Brokers: []string{brokerAddr},
-		Topic: streamID,
+		Topic:   streamID,
 	})
 	log.Printf("Producing message to topic %s: %s\n", streamID, data)
-	
+
 	// Release resource by kafka writer after the function is done
 	defer writer.Close()
 
 	err := writer.WriteMessages(context.Background(),
 		kafka.Message{
-			Key: []byte(streamID),
+			Key:   []byte(streamID),
 			Value: []byte(data),
 		},
 	)
@@ -34,11 +34,10 @@ func ProduceMessage(streamID string, data string) error {
 	return nil
 }
 
-
 func ConsumeMessage(streamID string) {
 	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers: []string{brokerAddr},
-		Topic: streamID, 
+		Brokers:     []string{brokerAddr},
+		Topic:       streamID,
 		StartOffset: kafka.LastOffset,
 	})
 
@@ -46,11 +45,11 @@ func ConsumeMessage(streamID string) {
 
 	for {
 		msg, err := reader.ReadMessage(context.Background())
-		if err != nil{
+		if err != nil {
 			log.Printf("Error reading message from stream %s: %v", streamID, err)
 			return
 		}
-		
+
 		processedData := ProcessMessage(string(msg.Value))
 
 		// Send processed results to channels
@@ -58,7 +57,7 @@ func ConsumeMessage(streamID string) {
 		ch, exists := streams[streamID]
 		mu.RUnlock()
 
-		if exists{
+		if exists {
 			ch <- processedData
 		}
 
@@ -67,6 +66,7 @@ func ConsumeMessage(streamID string) {
 }
 
 func ProcessMessage(data string) string {
+
 	return strings.ToUpper(data)
 }
 

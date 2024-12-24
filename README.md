@@ -1,1 +1,1 @@
-# Real Time Streaming API with Kafka(Redpanda)
+# Real Time Streaming API with Redpanda(Kafka)

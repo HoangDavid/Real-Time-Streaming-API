@@ -30,3 +30,4 @@ func main() {
 
 //Note to self:
 //	fuction has to be capitalized to be exported
+//  to run docker, first kill process on monitor and then rerun the docker
