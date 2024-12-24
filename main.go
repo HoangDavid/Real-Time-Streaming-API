@@ -3,8 +3,9 @@ package main
 import (
 	"log"
 	"net/http"
-	"github.com/gorilla/mux"
 	"real-time-api/handlers"
+
+	"github.com/gorilla/mux"
 )
 
 func main() {
@@ -13,20 +14,20 @@ func main() {
 	r.HandleFunc("/stream/{stream_id}/start", handlers.StreamStart).Methods("POST")
 	r.HandleFunc("/stream/{stream_id}/send", handlers.StreamSend).Methods("POST")
 	r.HandleFunc("/stream/{stream_id}/results", handlers.StreamResults).Methods("GET")
+	r.HandleFunc("/stream/{stream_id}/end", handlers.StreamEnd).Methods("POST")
 
 	log.Println("Starting server on :8080")
 	if err := http.ListenAndServe(":8080", r); err != nil {
-        log.Fatalf("could not start server: %s\n", err.Error())
-    }
+		log.Fatalf("could not start server: %s\n", err.Error())
+	}
 }
 
-
-
 //Testing:
-// Run: 
+// Run:
 // curl -X POST http://localhost:8080/stream/123/start
 // curl -X POST -d "Hi, my name is Hoang" http://localhost:8080/stream/123/send
 // curl -X GET http://localhost:8080/stream/123/results
+// curl -X POST http://localhost:8080/stream/123/end
 
 //Note to self:
 //	fuction has to be capitalized to be exported

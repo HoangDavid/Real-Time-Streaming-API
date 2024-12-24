@@ -12,7 +12,7 @@ import (
 
 func ProduceMessage(streamID string, data string) error {
 	writer := kafka.NewWriter(kafka.WriterConfig{
-		Brokers: []string{brokerAddr},
+		Brokers: brokerAddrs,
 		Topic:   streamID,
 	})
 	log.Printf("Producing message to topic %s: %s\n", streamID, data)
@@ -34,9 +34,9 @@ func ProduceMessage(streamID string, data string) error {
 	return nil
 }
 
-func ConsumeMessage(streamID string) {
+func ConsumeMessage(ctx context.Context, streamID string) {
 	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:     []string{brokerAddr},
+		Brokers:     brokerAddrs,
 		Topic:       streamID,
 		StartOffset: kafka.LastOffset,
 	})
@@ -44,24 +44,29 @@ func ConsumeMessage(streamID string) {
 	defer reader.Close()
 
 	for {
-		msg, err := reader.ReadMessage(context.Background())
-		if err != nil {
-			log.Printf("Error reading message from stream %s: %v", streamID, err)
+		select {
+		case <-ctx.Done():
+			log.Printf("Consumer for stream %s ended\n", streamID)
 			return
+		default:
+			msg, err := reader.ReadMessage(ctx)
+			if err != nil {
+				log.Printf("Error reading message from stream %s: %v", streamID, err)
+				return
+			}
+
+			processedData := ProcessMessage(string(msg.Value))
+
+			mu.RLock()
+			ch, exists := streams[streamID]
+			mu.RUnlock()
+
+			if exists {
+				ch <- processedData
+			}
+
+			log.Printf("Processed message from stream %s: %s", streamID, processedData)
 		}
-
-		processedData := ProcessMessage(string(msg.Value))
-
-		// Send processed results to channels
-		mu.RLock()
-		ch, exists := streams[streamID]
-		mu.RUnlock()
-
-		if exists {
-			ch <- processedData
-		}
-
-		log.Printf("Processed message from stream %s: %s", streamID, processedData)
 	}
 }
 
@@ -69,6 +74,9 @@ func ProcessMessage(data string) string {
 
 	return strings.ToUpper(data)
 }
+
+// To run cluster on Docker:
+//  docker-compose up -d
 
 //To run redpanda on Docker:
 //  docker run -d --name=redpanda -p 9092:9092 -p 9644:9644 docker.redpanda.com/vectorized/redpanda:latest redpanda start --overprovisioned --smp 1 --memory 1G --reserve-memory 0M --node-id 0 --check=false --kafka-addr PLAINTEXT://0.0.0.0:9092 --advertise-kafka-addr PLAINTEXT://localhost:9092

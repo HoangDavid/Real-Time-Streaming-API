@@ -14,7 +14,7 @@ test_stream() {
 }
 
 # Test 10 concurrent streams
-for i in {1..2}; do
+for i in {1..100}; do
   test_stream $i &
 done
 
