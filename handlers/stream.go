@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/segmentio/kafka-go"
@@ -18,39 +19,61 @@ var (
 		"localhost:29092",
 		"localhost:19092",
 	}
-	// results = make(map[string][]string)
 	mu             sync.RWMutex
 	streams        = make(map[string]chan string)
 	streamContexts = make(map[string]context.CancelFunc)
 	wg             sync.WaitGroup
 )
 
+const max_streams = 400
+
 func StreamStart(w http.ResponseWriter, r *http.Request) {
 	streamID := mux.Vars(r)["stream_id"]
 
-	createTopics(streamID)
-
 	// Create a channel for the stream
+	// TODO: add a topic creation limit (400) so to not exceed partition memory limit
+	// TODO: add workerpool so to limit CPU usage (2000)
+	// TODO: add a timeout for consumer when the user is not sending requests and not ending the connections
+	// TODO: goroutines for producer as well
+	// TODO: write a bash script with wrk to load test the script somehow ??
+	// TODO: API authentication implementation
+	// TODO: write unit tests and integration tests
+	// DONE !!!
+	time.Sleep(50 * time.Millisecond)
 	mu.Lock()
+	defer mu.Unlock()
+
 	_, exists := streams[streamID]
 	if !exists {
-		streams[streamID] = make(chan string)
-		ctx, cancel := context.WithCancel(context.Background())
-		streamContexts[streamID] = cancel
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			defer close(streams[streamID])
-			ConsumeMessage(ctx, streamID)
-		}()
+		if len(streams) < max_streams {
+			time.Sleep(50 * time.Millisecond) // Avoid spawning too many processes
+			createTopics(streamID)
 
-		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(fmt.Sprintf("Stream %s started successfully\n", streamID)))
+			streams[streamID] = make(chan string)
+			ctx, cancel := context.WithCancel(context.Background())
+			streamContexts[streamID] = cancel
+
+			wg.Add(1) // might be helpful when testing with client
+			go func() {
+				defer wg.Done()
+				defer close(streams[streamID])
+				ConsumeMessage(ctx, streamID)
+			}()
+
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(fmt.Sprintf("Stream %s started successfully\n", streamID)))
+			return
+
+		} else {
+			http.Error(w, "Maximum stream limit has reached", http.StatusTooManyRequests)
+			return
+		}
+
 	} else {
 		w.Write([]byte(fmt.Sprintf("Stream %s is already started\n", streamID)))
+		return
 	}
-	mu.Unlock()
 }
 
 func StreamSend(w http.ResponseWriter, r *http.Request) {
@@ -227,20 +250,3 @@ func deleteTopic(stream_id string) error {
 	log.Printf("Topic %s deleted successfully\n", stream_id)
 	return nil
 }
-
-/**
-TODO:
-- Current user flow:
-	- Create topic when connect v
-	- Delete topic when disconnect v
-	- Resource queueing when there are too many connections
-
-- JSON Based request and response
-- Add a end stream endpoint to release the resources (if idle, temporially release it??)
-- Change the processing function for real-time updates (monitoring house temperature)
-- Write a script to simulate client point of view (1 client to 1000 clients at least)
-- Build a CLI tool for funzy (maybe)
-
-- Able to handle 1000 concurrent users
-	- Load-balancing between many broker addresses
-*/
