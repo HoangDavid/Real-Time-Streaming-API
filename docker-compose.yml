@@ -38,7 +38,7 @@ services:
       - "18082:18082"  # Pandaproxy
       - "19092:19092"  # External Kafka
       - "19644:9644"    # Admin API
-    mem_limit: 3G      
+    mem_limit: 8G      
     cpus: "1.0"         # Limit to 1 CPU core
 
   redpanda-1:
@@ -69,7 +69,7 @@ services:
       - "29644:9644"    # Admin API
     depends_on:
       - redpanda-0
-    mem_limit: 3G       # Limit memory to 3 GB
+    mem_limit: 8G       # Limit memory to 3 GB
     cpus: "1.0"         # Limit to 1 CPU core
 
   redpanda-2:
@@ -100,7 +100,7 @@ services:
       - "39644:9644"    # Admin API
     depends_on:
       - redpanda-0
-    mem_limit: 3G       # Limit memory to 3 GB
+    mem_limit: 8G       # Limit memory to 3 GB
     cpus: "1.0"         # Limit to 1 CPU core
 
   console:

@@ -9,6 +9,8 @@ import (
 )
 
 func main() {
+	handlers.InitializeWorkerPool()
+
 	r := mux.NewRouter()
 
 	r.HandleFunc("/stream/{stream_id}/start", handlers.StreamStart).Methods("POST")
