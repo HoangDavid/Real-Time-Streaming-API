@@ -35,13 +35,14 @@ type JSONResponse struct {
 
 const (
 	maxActiveStreams = 950  // Max active streams
-	workerPoolSize   = 100  // Number of worker in the pools
+	workerPoolSize   = 1500 // Number of worker in the pools
 	JobQueueSize     = 2000 // Maximum queued jobs
 
 	// Timeout constant
 	TopicCreationTimeOut = 5 * time.Second
 	ProduderTimeOut      = 5 * time.Second
-	ConusmerTimeOut      = 5 * time.Second
+	ConsumerTimeout      = 30 * time.Second
+	SessionTimeOut       = 30 * time.Second
 )
 
 // Initialize workerpool
@@ -62,7 +63,7 @@ func worker(workerID int) {
 		case "send":
 			ProcessStreamSend(job, workerID)
 		case "results":
-
+			ProcessStreamResults(job, workerID)
 		case "end":
 
 		}

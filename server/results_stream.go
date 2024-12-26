@@ -2,10 +2,12 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/segmentio/kafka-go"
@@ -20,68 +22,121 @@ func StreamResults(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Connection", "keep-alive")
 
 	mu.RLock()
-	ch, exists := streams[streamID]
+	_, exists := streams[streamID]
 	mu.RUnlock()
 
 	if !exists {
-		http.Error(w, "Stream not found", http.StatusNotFound)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		w.Write(ConvertJSONResponse("error", fmt.Sprintf("Stream %s not found", streamID), nil))
 		return
 	}
 
-	log.Printf("StreamResults called for streamID: %s", streamID)
+	job := Job{
+		StreamID: streamID,
+		Task:     "results",
+		Payload:  nil,
+	}
 
-	// Stream the processed results to the client side
+	select {
+	case jobQueue <- job:
+	default:
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusTooManyRequests)
+		w.Write(ConvertJSONResponse("error", "Server is too busy. Please try again later.", nil))
+		return
+	}
+
+	mu.RLock()
+	ch := streams[streamID]
+	mu.RUnlock()
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(ConvertJSONResponse("error", "Streaming not supported", nil))
+		return
+	}
+
 	for msg := range ch {
-		log.Printf("Stream %s: %s\n", streamID, msg)
-		_, err := fmt.Fprintf(w, "data: %s\n\n", msg) // SSE data format
+		// TODO: send response to client in JSON payload
+		_, err := fmt.Fprintf(w, "data: %s\n\n", msg)
 		if err != nil {
-			log.Printf("Client disconnected from stream %s\n", streamID)
+			log.Printf("Error flushing data to client for stream %s: %v", streamID, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write(ConvertJSONResponse("error", "Internal Server error. Could not stream data", nil))
 			return
 		}
 
-		w.(http.Flusher).Flush() // Sending the data to client immediately
-	}
+		flusher.Flush()
 
+		var jsonResponse JSONResponse
+		_ = json.Unmarshal([]byte(msg), &jsonResponse)
+		if jsonResponse.Status == "error" {
+			// Close stream due to error or timeout
+			return
+		}
+	}
 }
 
-func ConsumeMessage(ctx context.Context, streamID string) {
+func ProcessStreamResults(job Job, workerID int) {
+	streamID := job.StreamID
+
+	mu.RLock()
+	ch := streams[streamID]
+	mu.RUnlock()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:     brokerAddrs,
 		Topic:       streamID,
-		StartOffset: kafka.LastOffset,
+		StartOffset: kafka.LastOffset, // Start from the latest message
 	})
 
 	defer reader.Close()
 
+	timer := time.NewTimer(ConsumerTimeout)
+	defer timer.Stop()
+
+	go func() {
+		<-timer.C
+		log.Printf("[Worker %d] Session timeout for stream %s", workerID, streamID)
+		ch <- string(ConvertJSONResponse("error", "Timeout due to inactivity. Try again to start streaming", nil))
+		cancel()
+	}()
+
+	// Consume Messages
 	for {
 		select {
 		case <-ctx.Done():
-			log.Printf("Consumer for stream %s ended\n", streamID)
+			// Stop consumer after session end due to inactivity
 			return
+
 		default:
 			msg, err := reader.ReadMessage(ctx)
 			if err != nil {
-				log.Printf("Error reading message from stream %s: %v", streamID, err)
-				return
+				log.Printf("[Worker %d] Error consuming message from stream %s", workerID, streamID)
+				ch <- string(ConvertJSONResponse("error", "Error consuming message", nil))
 			}
 
-			processedData := ProcessMessage(string(msg.Value))
-
-			mu.RLock()
-			ch, exists := streams[streamID]
-			mu.RUnlock()
-
-			if exists {
-				ch <- processedData
+			if !timer.Stop() {
+				<-timer.C
 			}
+			timer.Reset(ConsumerTimeout)
 
-			log.Printf("Processed message from stream %s: %s", streamID, processedData)
+			processedData := processMessage(string(msg.Value))
+			ch <- string(ConvertJSONResponse("success", "Message consumed successfully", processedData))
+			log.Printf("[Worker %d] Processed message for stream %s", workerID, streamID)
+
 		}
 	}
+
 }
 
-func ProcessMessage(data string) string {
-
+func processMessage(data string) string {
+	// TODO: add a dynamic process time simulation (add more complex processing house temperature monitering)
 	return strings.ToUpper(data)
 }
 
