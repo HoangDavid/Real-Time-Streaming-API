@@ -3,20 +3,20 @@ package main
 import (
 	"log"
 	"net/http"
-	"real-time-api/handlers"
+	"real-time-api/server"
 
 	"github.com/gorilla/mux"
 )
 
 func main() {
-	handlers.InitializeWorkerPool()
+	server.InitializeWorkerPool()
 
 	r := mux.NewRouter()
 
-	r.HandleFunc("/stream/{stream_id}/start", handlers.StreamStart).Methods("POST")
-	r.HandleFunc("/stream/{stream_id}/send", handlers.StreamSend).Methods("POST")
-	r.HandleFunc("/stream/{stream_id}/results", handlers.StreamResults).Methods("GET")
-	r.HandleFunc("/stream/{stream_id}/end", handlers.StreamEnd).Methods("POST")
+	r.HandleFunc("/stream/{stream_id}/start", server.StreamStart).Methods("POST")
+	r.HandleFunc("/stream/{stream_id}/send", server.StreamSend).Methods("POST")
+	r.HandleFunc("/stream/{stream_id}/results", server.StreamResults).Methods("GET")
+	r.HandleFunc("/stream/{stream_id}/end", server.StreamEnd).Methods("POST")
 
 	log.Println("Starting server on :8080")
 	if err := http.ListenAndServe(":8080", r); err != nil {

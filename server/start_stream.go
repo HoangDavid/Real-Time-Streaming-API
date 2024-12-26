@@ -1,70 +1,14 @@
-package handlers
+package server
 
 import (
 	"context"
 	"fmt"
 	"log"
 	"net/http"
-	"sync"
-	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/segmentio/kafka-go"
 )
-
-var (
-	brokerAddrs = []string{
-		"localhost:39092",
-		"localhost:29092",
-		"localhost:19092",
-	}
-	mu             sync.RWMutex
-	streams        = make(map[string]chan string)
-	streamContexts = make(map[string]context.CancelFunc)
-	jobQueue       = make(chan Job, JobQueueSize)
-	wg             sync.WaitGroup
-)
-
-type Job struct {
-	StreamID string
-	Task     string
-	Payload  string
-	w        http.ResponseWriter
-}
-
-const (
-	maxActiveStreams = 950  // Max active streams
-	workerPoolSize   = 1000 // Number of worker in the pools
-	JobQueueSize     = 2000 // Maximum queued jobs
-)
-
-// TimeOut constant
-const (
-	TopicCreationTimeOut = 5 * time.Second
-)
-
-func InitializeWorkerPool() {
-	for i := 0; i < workerPoolSize; i++ {
-		wg.Add(1)
-		go worker(i)
-	}
-}
-
-func worker(workerID int) {
-	defer wg.Done()
-	for job := range jobQueue {
-		switch job.Task {
-		case "start":
-			ProcessStartStream(job, workerID)
-		case "send":
-
-		case "results":
-
-		case "end":
-
-		}
-	}
-}
 
 // Create a channel for the stream
 // TODO: add a topic creation limit (400) so to not exceed partition memory limit
@@ -79,45 +23,45 @@ func worker(workerID int) {
 
 func StreamStart(w http.ResponseWriter, r *http.Request) {
 	streamID := mux.Vars(r)["stream_id"]
+	result := make(chan []byte, 1)
 
 	job := Job{
 		StreamID: streamID,
 		Task:     "start",
-		w:        w,
+		Result:   result,
 	}
 
 	select {
 	case jobQueue <- job:
 		// TODO: add API authencation here
-
-		w.WriteHeader(http.StatusAccepted)
-
-		// Stream start request is add to the worker pool
-		w.Write([]byte(fmt.Sprintf("Start stream %s request has been accepted!!\n", streamID)))
-
+		res := <-result
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(res))
 	default:
-		// Reject request when there are too many requeust
-		http.Error(w, "Server is too busy. Please try again later.\n", http.StatusTooManyRequests)
+		// Reject request when there are too many requests
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusTooManyRequests)
+		w.Write(ConvertJSONResponse("error", "Server too busy =((. Please try again later", nil))
+
 	}
 }
 
-func ProcessStartStream(job Job, workerID int) {
+func ProcessStreamStart(job Job, workerID int) {
 	streamID := job.StreamID
 
-	mu.Lock()
-	defer mu.Unlock()
-
+	mu.RLock()
 	if len(streams) >= maxActiveStreams {
-		// Server reached the max active connections (overloads kafka broker)
-		log.Printf("[Worker %d] Server reached active connections\n", workerID)
-		http.Error(job.w, "Server too busy. Please try again later\n", http.StatusTooManyRequests)
+		// Server reached to max active streams
+		log.Printf("[Worker %d] Reject start stream %s request. Max active connections reached!", workerID, streamID)
+		job.Result <- ConvertJSONResponse("error", "Too many active connections. Please try again later", nil)
 		return
 	}
 
 	_, exists := streams[streamID]
+	mu.RUnlock()
 	if exists {
 		// Stream already exists
-		http.Error(job.w, fmt.Sprintf("Stream %s already started\n", streamID), http.StatusConflict) // BUG: superfluouse writer to client
+		job.Result <- ConvertJSONResponse("error", fmt.Sprintf("Stream %s already exists", streamID), nil)
 		return
 	}
 
@@ -125,15 +69,17 @@ func ProcessStartStream(job Job, workerID int) {
 	if err != nil {
 		// Error creating  topics
 		log.Printf("[Worker %d] %v\n", err, workerID)
-		http.Error(job.w, fmt.Sprintf("failed to create stream %s =((. Please try again later\n", streamID), http.StatusInternalServerError)
+		job.Result <- ConvertJSONResponse("error", fmt.Sprintf("Fail to create stream %s. Please try again", streamID), nil)
 		return
 
 	}
 
 	// Admit a new stream to the server
+	mu.Lock()
 	streams[streamID] = make(chan string)
+	mu.Unlock()
 	log.Printf("[Worker %d] Stream %s starts successfully\n", workerID, streamID)
-	job.w.Write([]byte(fmt.Sprintf("Stream %s starts sucessfully\n", streamID)))
+	job.Result <- ConvertJSONResponse("success", fmt.Sprintf("Stream %s starts successfully!", streamID), nil)
 
 }
 
@@ -149,7 +95,7 @@ addrloop:
 	for _, addr := range brokerAddrs {
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("ftream %s timeout while connecting to %s", topic, addr)
+			return fmt.Errorf("stream %s timeout while connecting to %s", topic, addr)
 		default:
 			conn, err = kafka.Dial("tcp", addr)
 			if err == nil {

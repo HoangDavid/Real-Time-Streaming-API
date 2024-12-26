@@ -1,37 +1,47 @@
-package handlers
+package server
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"net/http"
 	"strings"
 
+	"github.com/gorilla/mux"
 	"github.com/segmentio/kafka-go"
 )
 
-// TODO: Producer and Consumer should be able to handle multiple streams simultaneously
+func StreamResults(w http.ResponseWriter, r *http.Request) {
+	streamID := mux.Vars(r)["stream_id"]
 
-func ProduceMessage(streamID string, data string) error {
-	writer := kafka.NewWriter(kafka.WriterConfig{
-		Brokers: brokerAddrs,
-		Topic:   streamID,
-	})
-	log.Printf("Producing message to topic %s: %s\n", streamID, data)
+	// Set Server-side Headers
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
 
-	// Release resource by kafka writer after the function is done
-	defer writer.Close()
+	mu.RLock()
+	ch, exists := streams[streamID]
+	mu.RUnlock()
 
-	err := writer.WriteMessages(context.Background(),
-		kafka.Message{
-			Key:   []byte(streamID),
-			Value: []byte(data),
-		},
-	)
-
-	if err != nil {
-		return err
+	if !exists {
+		http.Error(w, "Stream not found", http.StatusNotFound)
+		return
 	}
 
-	return nil
+	log.Printf("StreamResults called for streamID: %s", streamID)
+
+	// Stream the processed results to the client side
+	for msg := range ch {
+		log.Printf("Stream %s: %s\n", streamID, msg)
+		_, err := fmt.Fprintf(w, "data: %s\n\n", msg) // SSE data format
+		if err != nil {
+			log.Printf("Client disconnected from stream %s\n", streamID)
+			return
+		}
+
+		w.(http.Flusher).Flush() // Sending the data to client immediately
+	}
+
 }
 
 func ConsumeMessage(ctx context.Context, streamID string) {

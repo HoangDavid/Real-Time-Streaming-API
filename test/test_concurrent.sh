@@ -7,7 +7,9 @@ test_stream() {
   curl -X POST http://localhost:8080/stream/$stream_id/start
 
   # echo "Sending message to stream $stream_id"
-  # curl -X POST -d "Message for stream $stream_id" http://localhost:8080/stream/$stream_id/send
+  curl -X POST -H "Content-Type: application/json" \
+  -d '{"data": "Message for stream"}' \
+  http://localhost:8080/stream/$stream_id/send
 
   # echo "Getting results for stream $stream_id"
   # curl -X GET http://localhost:8080/stream/$stream_id/results
@@ -15,7 +17,7 @@ test_stream() {
 }
 
 # Test 10 concurrent streams
-for i in {1..1000}; do
+for i in {1..10}; do
   test_stream $i &
   sleep 0.1
 done
