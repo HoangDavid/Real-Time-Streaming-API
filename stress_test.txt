@@ -1,0 +1,95 @@
+wrk -t3 -c100 -d30s -s test/benchmark.lua http://localhost:8080
+
+Running 30s test @ http://localhost:8080
+  3 threads and 100 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency    13.15ms   76.11ms   1.59s    97.24%
+    Req/Sec    28.20k    24.68k  111.24k    61.46%
+  2443754 requests in 30.07s, 398.35MB read
+  Socket errors: connect 0, read 0, write 0, timeout 84
+Requests/sec:  81274.48
+Transfer/sec:     13.25MB
+
+wrk -t3 -c200 -d30s -s test/benchmark.lua http://localhost:8080
+
+Running 30s test @ http://localhost:8080
+  3 threads and 200 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency    26.57ms  117.89ms   1.96s    96.50%
+    Req/Sec    20.76k    23.40k  120.32k    83.78%
+  1827753 requests in 30.10s, 298.90MB read
+  Socket errors: connect 0, read 47, write 0, timeout 145
+Requests/sec:  60725.90
+Transfer/sec:      9.93MB
+
+wrk -t3 -c300 -d30s -s test/benchmark.lua http://localhost:8080
+
+Running 30s test @ http://localhost:8080
+  3 threads and 300 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency    32.63ms  116.26ms   1.97s    94.49%
+    Req/Sec    18.68k    20.58k  105.52k    82.85%
+  1658462 requests in 30.10s, 271.51MB read
+  Socket errors: connect 0, read 179, write 0, timeout 208
+Requests/sec:  55103.13
+Transfer/sec:      9.02MB
+
+wrk -t3 -c400 -d30s -s test/benchmark.lua http://localhost:8080
+
+Running 30s test @ http://localhost:8080
+  3 threads and 400 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency    70.12ms  177.40ms   2.00s    91.16%
+    Req/Sec    13.71k    18.49k   93.52k    83.31%
+  1179250 requests in 30.10s, 193.19MB read
+  Socket errors: connect 0, read 341, write 0, timeout 211
+Requests/sec:  39182.14
+Transfer/sec:      6.42MB
+
+wrk -t3 -c500 -d30s -s test/benchmark.lua http://localhost:8080
+
+Running 30s test @ http://localhost:8080
+  3 threads and 500 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency    89.75ms  208.32ms   2.00s    89.83%
+    Req/Sec    12.49k    19.07k  115.02k    84.70%
+  1115027 requests in 30.07s, 182.74MB read
+  Socket errors: connect 0, read 302, write 64, timeout 358
+Requests/sec:  37079.17
+Transfer/sec:      6.08MB
+
+wrk -t3 -c600 -d30s -s test/benchmark.lua http://localhost:8080
+
+Running 30s test @ http://localhost:8080
+  3 threads and 600 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency    75.79ms  161.05ms   2.00s    89.39%
+    Req/Sec    11.31k    17.73k  115.35k    84.45%
+  1007270 requests in 30.08s, 165.12MB read
+  Socket errors: connect 0, read 679, write 92, timeout 298
+Requests/sec:  33486.18
+Transfer/sec:      5.49MB
+
+wrk -t3 -c700 -d30s -s test/benchmark.lua http://localhost:8080
+
+Running 30s test @ http://localhost:8080
+  3 threads and 700 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency   172.25ms  303.46ms   2.00s    87.65%
+    Req/Sec     4.79k    11.94k   85.82k    89.92%
+  401533 requests in 30.13s, 65.88MB read
+  Socket errors: connect 0, read 1424, write 0, timeout 827
+Requests/sec:  13327.64
+Transfer/sec:      2.19MB
+
+wrk -t3 -c800 -d30s -s test/benchmark.lua http://localhost:8080
+
+Running 30s test @ http://localhost:8080
+  3 threads and 800 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency   163.93ms  280.42ms   2.00s    87.30%
+    Req/Sec     4.96k     9.68k   73.39k    89.48%
+  428815 requests in 30.08s, 70.36MB read
+  Socket errors: connect 0, read 1816, write 2, timeout 361
+Requests/sec:  14255.99
+Transfer/sec:      2.34MB
