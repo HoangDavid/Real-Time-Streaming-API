@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"sync"
 	"time"
 )
@@ -44,6 +45,12 @@ const (
 	ConsumerTimeout      = 20 * time.Second // Timeout for user inactivity
 )
 
+// Sample Valid API Keys (later replaced with database)
+var validAPIKeys = map[string]bool{
+	"your-api-key-1": true,
+	"your-api-key-2": true,
+}
+
 // Initialize workerpool
 func InitializeWorkerPool() {
 	for i := 0; i < workerPoolSize; i++ {
@@ -78,4 +85,15 @@ func ConvertJSONResponse(status, message string, data interface{}) []byte {
 	}
 	jsonResponse, _ := json.Marshal(response)
 	return append(jsonResponse, '\n')
+}
+
+func APIKeyAuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		apiKey := r.Header.Get("X-API-KEY")
+		if apiKey == "" || !validAPIKeys[apiKey] {
+			http.Error(w, string(ConvertJSONResponse("error", "Unauthorized: Invalid or missing API key", nil)), http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }

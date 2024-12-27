@@ -11,11 +11,6 @@ import (
 )
 
 // Create a channel for the stream
-// TODO: add a topic creation limit (400) so to not exceed partition memory limit
-// TODO: add workerpool so to limit CPU usage (2000)
-// TODO: add a timeout for consumer when the user is not sending requests and not ending the connections
-// TODO: add a timeout for start stream (ask the user to retry as well) and end stream
-// TODO: goroutines for producer and start/end stream as well
 // TODO: write a bash script with wrk to load test the script somehow ??
 // TODO: API authentication implementation
 // TODO: write unit tests and integration tests

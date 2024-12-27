@@ -83,7 +83,7 @@ func deleteTopic(stream_id string) error {
 	}
 
 	if conn == nil {
-		return fmt.Errorf("could not connect to any brokers")
+		return fmt.Errorf("failed to connect stream %s to any brokers", stream_id)
 	}
 	defer conn.Close()
 
@@ -91,14 +91,14 @@ func deleteTopic(stream_id string) error {
 	controllerAddr := fmt.Sprintf("%s:%d", controller.Host, controller.Port)
 	controllerConn, err := kafka.Dial("tcp", controllerAddr)
 	if err != nil {
-		return fmt.Errorf("failed to dial controller broker %s: %w", controllerAddr, err)
+		return fmt.Errorf("failed to dial controller broker %s: %v", controllerAddr, err)
 	}
 	defer controllerConn.Close()
 
 	// Delete the topic
 	err = controllerConn.DeleteTopics(stream_id)
 	if err != nil {
-		return fmt.Errorf("failed to delete topic %q: %w", stream_id, err)
+		return fmt.Errorf("failed to delete topic %s: %v", stream_id, err)
 	}
 
 	log.Printf("Topic %s deleted successfully\n", stream_id)
