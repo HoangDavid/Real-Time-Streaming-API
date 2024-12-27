@@ -78,6 +78,17 @@ A high-performance real-time streaming API built with Golang and Kafka (Redpanda
       "data": "Processed data stream content"
     }
     ```
+
+- **Endpoint**: `POST /stream/{stream_id}/end`
+  - **Description**: Ends a stream and cleans up resources.
+  - **Request Payload**: None
+  - **Response**:
+    ```json
+    {
+      "status": "success",
+      "message": "Stream {stream_id} disconnected successfully"
+    }
+    ```
 #### 2. Kafka (Redpanda) Integration
 - **Message Broker**: Redpanda (a Kafka-compatible platform) is used to handle data streams for high throughput and fault tolerance.
 - **Stream Isolation**: Each `stream_id` corresponds to a unique Kafka topic or partition to simulate isolated clients.
