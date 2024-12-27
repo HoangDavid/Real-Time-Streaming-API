@@ -45,7 +45,7 @@ const (
 	ConsumerTimeout      = 20 * time.Second // Timeout for user inactivity
 )
 
-var workerPoolSize = runtime.NumCPU() * 20 // Number of worker in the pools
+var workerPoolSize = runtime.NumCPU() * 15 // Number of worker in the pools
 // Sample Valid API Keys (later replaced with database)
 var validAPIKeys = map[string]bool{
 	"your-api-key-1": true,

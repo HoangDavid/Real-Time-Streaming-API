@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"math/rand"
+
 	"github.com/gorilla/mux"
 	"github.com/segmentio/kafka-go"
 )
@@ -139,7 +141,9 @@ func ProcessStreamResults(job Job, workerID int) {
 }
 
 func processMessage(data string) string {
-	// TODO: add a dynamic process time simulation (add more complex processing house temperature monitering)
+	// Simulate variable processing time between 5ms and 30ms
+	randomDelay := time.Duration(rand.Intn(26)+5) * time.Millisecond
+	time.Sleep(randomDelay)
 	return strings.ToUpper(data)
 }
 

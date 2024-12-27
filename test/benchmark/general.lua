@@ -33,7 +33,7 @@ end
 -- Function to generate a dynamic request
 function request()
     -- Generate a unique `streamId` between 1 and 900
-    local streamId = math.random(1, 500)
+    local streamId = math.random(1, 800)
 
     -- Ensure `/start` is called first for each unique `streamId`
     if not startedStreams[streamId] then
