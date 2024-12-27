@@ -1,4 +1,4 @@
-# Real Time Streaming API with Redpanda(Kafka)
+# Real Time Streaming API with Kafka(Redpanda)
 
 A high-performance real-time streaming API built with Golang and Kafka (Redpanda). This API enables clients to start streams, send data, and retrieve results via a scalable and robust architecture. Designed for handling large-scale concurrent connections, this API is benchmarked and optimized for real-time performance.
 
