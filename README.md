@@ -67,7 +67,8 @@ Client ----> [API Gateway] ----> [Kafka Producer]
 ## Demo
 
 ![Demo of Real-Time Streaming API](graphic/demo.gif)
-This demo showcases the real-time streaming API handling one connection
+This demo showcases the real-time streaming API handling one connection.
+Server(left) and Client (right)
 
 ## Testing
 
