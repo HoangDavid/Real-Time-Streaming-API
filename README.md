@@ -1,5 +1,64 @@
 # Real Time Streaming API with Redpanda(Kafka)
 
+A high-performance real-time streaming API built with Golang and Kafka (Redpanda). This API enables clients to start streams, send data, and retrieve results via a scalable and robust architecture. Designed for handling large-scale concurrent connections, this API is benchmarked and optimized for real-time performance.
+
+## Architecture
+
+### Design Overview
+
+- **API Design**:
+  - RESTful endpoints in Golang for initiating streams, sending data, and retrieving real-time results.
+  - Efficient management of concurrent connections using Goroutines.
+
+- **Kafka (Redpanda) Integration**:
+  - Each `stream_id` maps to a unique Kafka topic or partition ensure user isolation
+  - Redpanda ensures fault tolerance and scalability for message processing.
+  - Kafka consumers process incoming messages in real time.
+
+- **Processing**:
+  - Incoming data chunks are pushed to Kafka topics.
+  - Consumers simulate real-time processing, transforming data dynamically.
+  - Results are streamed back to clients via Server-Sent Events (SSE).
+
+### Components
+
+1. **API Server**:
+   - Built in Golang.
+   - Manages stream lifecycle: start, send, retrieve results, and end.
+   - Ensures fault tolerance with graceful handling of inactive streams.
+
+2. **Kafka Cluster**:
+   - Uses a Redpanda-backed Kafka cluster with 3 brokers.
+   - Each stream gets its own topic or partition for data isolation.
+
+3. **Fault Tolerance**:
+   - Kafka’s replication ensures no data loss during broker failures.
+   - Timeouts for inactive streams prevent resource leakage.
+
+---
+
+## API Design
+
+### Endpoints
+
+  - `POST /stream/start`: Initializes a new stream.
+  - `POST /stream/{stream_id}/send`: Sends data chunks to the specified stream.
+  - `GET /stream/{stream_id}/results`: Retrieves real-time results using Server-Sent Events (SSE).
+  - `POST /stream/{stream_id}/end`: Ends a stream and cleans up resources.
+
+## Testing
+
+- **Tool**: [wrk](https://github.com/wg/wrk)
+- **Duration**: 30 seconds per test
+- **Threads**: 3
+- **Concurrent Connections**: Varying (100, 200, 300, ..., 800)
+- **API Endpoint**: `http://localhost:8080`
+- **Script**: `benchmark.lua` for simulating traffic patterns
+
+### Command
+```bash
+wrk -t3 -c<CONNECTIONS> -d30s -s test/benchmark.lua http://localhost:8080
+
 | Active connections | Requests/Sec | Transfer/Sec | Avg Latency | Max Latency | Socket Errors (Connect/Read/Write/Timeout) | Total Requests | Total Data Read |
 |-------------|--------------|--------------|-------------|-------------|-------------------------------------------|----------------|-----------------|
 | 100         | 81274.48     | 13.25MB      | 13.15ms     | 1.59s       | 0/0/0/84                                 | 2443754        | 398.35MB        |
