@@ -39,10 +39,9 @@ const (
 	JobQueueSize     = 2000 // Maximum queued jobs
 
 	// Timeout constant
-	TopicCreationTimeOut = 5 * time.Second
-	ProduderTimeOut      = 5 * time.Second
-	ConsumerTimeout      = 30 * time.Second
-	SessionTimeOut       = 30 * time.Second
+	TopicCreationTimeOut = 5 * time.Second  // Prevent stall of topic creation
+	ProduderTimeOut      = 5 * time.Second  // Prevent stall of producers
+	ConsumerTimeout      = 20 * time.Second // Timeout for user inactivity
 )
 
 // Initialize workerpool
@@ -65,7 +64,7 @@ func worker(workerID int) {
 		case "results":
 			ProcessStreamResults(job, workerID)
 		case "end":
-
+			ProcessStreamEnd(job, workerID)
 		}
 	}
 }
@@ -78,5 +77,5 @@ func ConvertJSONResponse(status, message string, data interface{}) []byte {
 		Data:    data,
 	}
 	jsonResponse, _ := json.Marshal(response)
-	return jsonResponse
+	return append(jsonResponse, '\n')
 }

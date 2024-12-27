@@ -59,7 +59,7 @@ func StreamResults(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for msg := range ch {
-		// TODO: send response to client in JSON payload
+		// Send response to client in Server Side Event with JSON payload
 		_, err := fmt.Fprintf(w, "data: %s\n\n", msg)
 		if err != nil {
 			log.Printf("Error flushing data to client for stream %s: %v", streamID, err)
@@ -73,7 +73,7 @@ func StreamResults(w http.ResponseWriter, r *http.Request) {
 		var jsonResponse JSONResponse
 		_ = json.Unmarshal([]byte(msg), &jsonResponse)
 		if jsonResponse.Status == "error" {
-			// Close stream due to error or timeout
+			// Close streaming due to error or timeout
 			return
 		}
 	}
@@ -87,7 +87,10 @@ func ProcessStreamResults(job Job, workerID int) {
 	mu.RUnlock()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+
+	mu.Lock()
+	streamContexts[streamID] = cancel
+	mu.Unlock()
 
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:     brokerAddrs,
@@ -107,7 +110,7 @@ func ProcessStreamResults(job Job, workerID int) {
 		cancel()
 	}()
 
-	// Consume Messages
+	// Consumer for messages
 	for {
 		select {
 		case <-ctx.Done():

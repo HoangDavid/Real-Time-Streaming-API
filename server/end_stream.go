@@ -12,36 +12,63 @@ import (
 func StreamEnd(w http.ResponseWriter, r *http.Request) {
 	streamID := mux.Vars(r)["stream_id"]
 
-	// Lock to safely access shared resources
-	mu.Lock()
-	_, exists := streams[streamID]
-	if exists {
-		delete(streams, streamID)
-
-		if cancel, ok := streamContexts[streamID]; ok {
-			cancel() // Cancel the context to stop the consumer
-			delete(streamContexts, streamID)
-		}
+	result := make(chan []byte)
+	job := Job{
+		StreamID: streamID,
+		Task:     "end",
+		Result:   result,
 	}
-	mu.Unlock()
+
+	select {
+	case jobQueue <- job:
+		res := <-result
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(res))
+	default:
+		// Reject request when there are too many requests
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusTooManyRequests)
+		w.Write(ConvertJSONResponse("error", "Server too busy =((. Please try again later", nil))
+	}
+}
+
+func ProcessStreamEnd(job Job, workerID int) {
+	streamID := job.StreamID
+
+	mu.RLock()
+	ch, exists := streams[streamID]
+	mu.RUnlock()
 
 	if !exists {
-		http.Error(w, fmt.Sprintf("Stream %s not found", streamID), http.StatusNotFound)
+		log.Printf("[Worker %d] Stream %s not found", workerID, streamID)
+		job.Result <- ConvertJSONResponse("error", fmt.Sprintf("Stream %s not found", streamID), nil)
 		return
 	}
 
-	log.Printf("Stream %s ended successfully\n", streamID)
+	// Remove active channel for stream
+	mu.Lock()
+	close(ch)
+	delete(streams, streamID)
+	mu.Unlock()
 
-	// Optionally delete the Kafka topic associated with the stream
+	// Delete Topic
 	err := deleteTopic(streamID)
 	if err != nil {
-		log.Printf("Failed to delete topic %s: %v\n", streamID, err)
-		http.Error(w, fmt.Sprintf("Stream %s ended but failed to delete topic: %v", streamID, err), http.StatusInternalServerError)
-		return
+		log.Printf("[Worker %d] %v", workerID, err)
+		job.Result <- ConvertJSONResponse("error", fmt.Sprintf("Failed to start stream %s", streamID), nil)
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf("Stream %s ended successfully\n", streamID)))
+	// Force exit the goroutine for data streaming if active
+	mu.RLock()
+	cancel, exists := streamContexts[streamID]
+	if exists {
+		cancel()
+	}
+	mu.RUnlock()
+
+	log.Printf("[Worker %d] Stream %s ended", workerID, streamID)
+	job.Result <- ConvertJSONResponse("success", fmt.Sprintf("Stream %s disconnected successfully", streamID), nil)
+
 }
 
 func deleteTopic(stream_id string) error {
