@@ -1,6 +1,6 @@
 # Real Time Streaming API with Redpanda(Kafka)
 
-| Connections | Requests/Sec | Transfer/Sec | Avg Latency | Max Latency | Socket Errors (Connect/Read/Write/Timeout) | Total Requests | Total Data Read |
+| Active connections | Requests/Sec | Transfer/Sec | Avg Latency | Max Latency | Socket Errors (Connect/Read/Write/Timeout) | Total Requests | Total Data Read |
 |-------------|--------------|--------------|-------------|-------------|-------------------------------------------|----------------|-----------------|
 | 100         | 81274.48     | 13.25MB      | 13.15ms     | 1.59s       | 0/0/0/84                                 | 2443754        | 398.35MB        |
 | 200         | 60725.90     | 9.93MB       | 26.57ms     | 1.96s       | 0/47/0/145                               | 1827753        | 298.90MB        |
