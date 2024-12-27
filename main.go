@@ -13,7 +13,7 @@ func main() {
 
 	r := mux.NewRouter()
 
-	r.Use(server.APIKeyAuthMiddleware)
+	// r.Use(server.APIKeyAuthMiddleware)
 	r.HandleFunc("/stream/{stream_id}/start", server.StreamStart).Methods("POST")
 	r.HandleFunc("/stream/{stream_id}/send", server.StreamSend).Methods("POST")
 	r.HandleFunc("/stream/{stream_id}/results", server.StreamResults).Methods("GET")

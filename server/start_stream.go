@@ -10,9 +10,9 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-// Create a channel for the stream
+// TODO: change the process function with house temp monitoring
+// TODO: add client to simulate traffic of requests
 // TODO: write a bash script with wrk to load test the script somehow ??
-// TODO: API authentication implementation
 // TODO: write unit tests and integration tests
 // DONE !!!
 

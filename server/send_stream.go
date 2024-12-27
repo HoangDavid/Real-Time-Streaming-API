@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/segmentio/kafka-go"
@@ -84,8 +85,10 @@ func ProduceMessage(streamID string, data string) error {
 	defer cancel()
 
 	writer := kafka.NewWriter(kafka.WriterConfig{
-		Brokers: brokerAddrs,
-		Topic:   streamID,
+		Brokers:      brokerAddrs,
+		Topic:        streamID,
+		BatchTimeout: 10 * time.Millisecond,
+		BatchSize:    100,
 	})
 
 	defer writer.Close() // Release resource when done

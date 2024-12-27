@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"runtime"
 	"sync"
 	"time"
 )
@@ -36,8 +37,7 @@ type JSONResponse struct {
 
 const (
 	maxActiveStreams = 950  // Max active streams
-	workerPoolSize   = 1500 // Number of worker in the pools
-	JobQueueSize     = 2000 // Maximum queued jobs
+	JobQueueSize     = 3000 // Maximum queued jobs
 
 	// Timeout constant
 	TopicCreationTimeOut = 5 * time.Second  // Prevent stall of topic creation
@@ -45,6 +45,7 @@ const (
 	ConsumerTimeout      = 20 * time.Second // Timeout for user inactivity
 )
 
+var workerPoolSize = runtime.NumCPU() * 20 // Number of worker in the pools
 // Sample Valid API Keys (later replaced with database)
 var validAPIKeys = map[string]bool{
 	"your-api-key-1": true,
