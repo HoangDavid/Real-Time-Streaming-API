@@ -81,6 +81,7 @@ This demo showcases the real-time streaming API handling one connection
 ### Command
 ```bash
 wrk -t3 -c<CONNECTIONS> -d30s -s test/benchmark.lua http://localhost:8080
+```
 
 | Active connections | Requests/Sec | Transfer/Sec | Avg Latency | Max Latency | Socket Errors (Connect/Read/Write/Timeout) | Total Requests | Total Data Read |
 |-------------|--------------|--------------|-------------|-------------|-------------------------------------------|----------------|-----------------|
@@ -92,7 +93,7 @@ wrk -t3 -c<CONNECTIONS> -d30s -s test/benchmark.lua http://localhost:8080
 | 600         | 33486.18     | 5.49MB       | 75.79ms     | 2.00s       | 0/679/92/298                              | 1007270        | 165.12MB        |
 | 700         | 13327.64     | 2.19MB       | 172.25ms    | 2.00s       | 0/1424/0/827                              | 401533         | 65.88MB         |
 | 800         | 14255.99     | 2.34MB       | 163.93ms    | 2.00s       | 0/1816/2/361                              | 428815         | 70.36MB         |
-```
+
 ### Key Insights
 
 - **Optimal Performance**: Best performance with **100-200 concurrent connections**.
